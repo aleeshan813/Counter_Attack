@@ -1,14 +1,12 @@
 using UnityEngine;
 using UnityEngine.Events;
+using Photon.Pun;
 
 public class PlayerScript : MonoBehaviour
 {
     [Header("Player Movement")]
     [SerializeField] float PlayerSpeed = 1.9f;
     [SerializeField] float PlayerSprint = 3f;
-   
-    [Header("Player Camera")]
-    [SerializeField] Transform PlayerCamera;
 
     [Header("Player Animator and Gravity")]
     [SerializeField] CharacterController characterController;
@@ -23,18 +21,24 @@ public class PlayerScript : MonoBehaviour
     [SerializeField] Transform surfaceCheck;
     [SerializeField] LayerMask surfaceMask;
 
+    PhotonView view;
     float turnCalmVelocity;
     Vector3 velocity;
     bool onSurface;
     float sufaceDistance = 0.4f;
-   
 
+    private void Start()
+    {
+        view = GetComponent<PhotonView>();
+    }
 
     private void FixedUpdate()
     {
-        onPlayerMove.Invoke();
+        if (view.IsMine)
+        {
+            onPlayerMove.Invoke();
+        }
     }
-
 
     // Gravity
     public void Gravity()
@@ -50,7 +54,7 @@ public class PlayerScript : MonoBehaviour
         characterController.Move(velocity * Time.deltaTime);
     }
 
-    //Movement
+    // Movement
     public void playerMove()
     {
         float Horizontal_axis = Input.GetAxisRaw("Horizontal");
@@ -63,26 +67,24 @@ public class PlayerScript : MonoBehaviour
         {
             AnimationManager.instance.SetBool_Anim("Walk", true);
 
-            float targetAngle = Mathf.Atan2(MoveDirection.x, MoveDirection.z) * Mathf.Rad2Deg + PlayerCamera.eulerAngles.y;
+            float targetAngle = Mathf.Atan2(MoveDirection.x, MoveDirection.z) * Mathf.Rad2Deg;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnCalmVelocity, turnCalmTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            Vector3 MoveCameraDirection = Quaternion.Euler(0, targetAngle, 0f) * Vector3.forward;
-            characterController.Move(MoveCameraDirection.normalized * PlayerSpeed * Time.deltaTime);
+            characterController.Move(MoveDirection.normalized * PlayerSpeed * Time.deltaTime);
         }
         else
         {
-            AnimationManager.instance.SetBool_Anim("Walk", false) ;
+            AnimationManager.instance.SetBool_Anim("Walk", false);
         }
     }
 
-    //Sprint
+    // Sprint
     public void Sprint()
     {
-        if(Input.GetButton("Sprint") && (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) && onSurface)
+        if (Input.GetButton("Sprint") && (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) && onSurface)
         {
             AnimationManager.instance.SetBool_Anim("Running", true);
-            
 
             float Horizontal_axis = Input.GetAxisRaw("Horizontal");
             float Vertical_axis = Input.GetAxisRaw("Vertical");
@@ -92,12 +94,11 @@ public class PlayerScript : MonoBehaviour
 
             if (MoveDirection.magnitude >= 0.1f)
             {
-                float targetAngle = Mathf.Atan2(MoveDirection.x, MoveDirection.z) * Mathf.Rad2Deg + PlayerCamera.eulerAngles.y;
+                float targetAngle = Mathf.Atan2(MoveDirection.x, MoveDirection.z) * Mathf.Rad2Deg;
                 float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnCalmVelocity, turnCalmTime);
                 transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-                Vector3 MoveCameraDirection = Quaternion.Euler(0, targetAngle, 0f) * Vector3.forward;
-                characterController.Move(MoveCameraDirection.normalized * PlayerSprint * Time.deltaTime);
+                characterController.Move(MoveDirection.normalized * PlayerSprint * Time.deltaTime);
             }
         }
         else
@@ -106,7 +107,7 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
-    //Jumping
+    // Jumping
     public void Jump()
     {
         if (Input.GetButtonDown("Jump") && onSurface)
